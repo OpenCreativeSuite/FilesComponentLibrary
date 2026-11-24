@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Files</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <PackageId>Files</PackageId>
+    <Description>Files components for Donkeh.</Description>
+    <DonkehVersion Condition="'$(DonkehVersion)' == ''">1.0.48</DonkehVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Donkeh.UILab" Version="$(DonkehVersion)" />
+  </ItemGroup>
+
+</Project>

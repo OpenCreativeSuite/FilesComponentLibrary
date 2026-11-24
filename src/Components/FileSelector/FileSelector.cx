@@ -1,0 +1,23 @@
+using Donkeh.UILab;
+using static Donkeh.UILab._;
+using static Donkeh.UILab.HtmlHelper;
+
+namespace OpenCreativeSuite.Components
+{
+    public class FileSelectorProps
+    {
+
+    }
+
+    public class FileSelector : Component<FileSelectorProps>
+    {
+        public override Node Render()
+        {
+            return (
+                <div className="file-selector-root">
+                    
+                </div>
+            );
+        }
+    }
+}
