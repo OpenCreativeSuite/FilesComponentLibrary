@@ -1,0 +1,13 @@
+/* ==========================================================================
+   FileBrowserGrid
+   ========================================================================== */
+
+.file-browser-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 104px);
+    justify-content: start;
+    align-content: start;
+    gap: 8px;
+    padding: 14px;
+    box-sizing: border-box;
+}

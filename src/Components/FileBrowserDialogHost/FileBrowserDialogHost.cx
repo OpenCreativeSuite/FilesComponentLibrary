@@ -1,0 +1,50 @@
+using Donkeh.UILab;
+using static Donkeh.UILab._;
+using static Donkeh.UILab.HtmlHelper;
+
+[assembly: Donkeh.UILab.Stylesheet("src/Components/FileBrowserDialogHost/FileBrowserDialogHost.css")]
+
+namespace OpenCreativeSuite.Files
+{
+    /// <summary>
+    /// Mount one of these near the root of the app. <see cref="FileSelector"/>
+    /// and <see cref="DirectorySelector"/> publish their dialogs through
+    /// <see cref="FileBrowserDialogService"/> and this host renders them.
+    /// </summary>
+    public sealed class FileBrowserDialogHost : Component
+    {
+        public override Node Render()
+        {
+            var (request, setRequest) = State<FileBrowserDialogRequest?>(() => null);
+
+            Effect(() =>
+            {
+                Action<FileBrowserDialogRequest> handler = r => setRequest(r);
+                FileBrowserDialogService.Requested += handler;
+                return () => FileBrowserDialogService.Requested -= handler;
+            }, new object[] { });
+
+            return (
+                <div className="file-browser-dialog-host">
+                    {Show(request != null,
+                        <FileBrowserDialog
+                            Open={true}
+                            Title={request != null ? request.Title : ""}
+                            InitialPath={request != null ? request.InitialPath : ""}
+                            InitialView={request != null ? request.InitialView : FileBrowserViewMode.List}
+                            AllowMultiSelect={request != null && request.AllowMultiSelect}
+                            AllowFileSelection={request == null || request.AllowFileSelection}
+                            AllowDirectorySelection={request != null && request.AllowDirectorySelection}
+                            AllowedExtensions={request != null ? request.AllowedExtensions : Array.Empty<string>()}
+                            ExcludedExtensions={request != null ? request.ExcludedExtensions : Array.Empty<string>()}
+                            FileSystemProvider={request != null ? request.FileSystemProvider : null}
+                            RecentItemsService={request != null ? request.RecentItemsService : null}
+                            Theme={request != null ? request.Theme : null}
+                            DarkMode={request != null && request.DarkMode}
+                            OnConfirm={(items) => { var r = request; setRequest(null); r?.OnConfirm?.Invoke(items); }}
+                            OnCancel={() => { var r = request; setRequest(null); r?.OnCancel?.Invoke(); }} />)}
+                </div>
+            );
+        }
+    }
+}

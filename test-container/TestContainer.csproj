@@ -1,19 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
+    <DonkehDesktop>true</DonkehDesktop>
+    <OutputType>Exe</OutputType>
     <RootNamespace>Files.TestContainer</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <DefaultItemExcludes>$(DefaultItemExcludes);builds/**</DefaultItemExcludes>
-    <DonkehVersion Condition="'$(DonkehVersion)' == ''">1.0.48</DonkehVersion>
+    <DonkehVersion Condition="'$(DonkehVersion)' == ''">1.0.51</DonkehVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Donkeh.Windowing" Version="$(DonkehVersion)" />
     <ProjectReference Include="../src/Files.csproj" />
     <EmbeddedResource Include="Styles/gallery.css" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Donkeh.Windowing" Version="$(DonkehVersion)" />
+  </ItemGroup>
 </Project>

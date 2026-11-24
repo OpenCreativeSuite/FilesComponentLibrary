@@ -1,0 +1,58 @@
+using Donkeh.UILab;
+using static Donkeh.UILab._;
+using static Donkeh.UILab.HtmlHelper;
+
+[assembly: Donkeh.UILab.Stylesheet("src/Components/FileBrowserList/FileBrowserList.css")]
+
+namespace OpenCreativeSuite.Files
+{
+    public sealed class FileBrowserListProps
+    {
+        public IReadOnlyList<FileSystemEntry> Items { get; init; } = Array.Empty<FileSystemEntry>();
+        public IReadOnlyList<FileSystemEntry> Selection { get; init; } = Array.Empty<FileSystemEntry>();
+        public Action<FileSystemEntry, bool, bool>? OnItemClicked { get; init; }
+        public Action<FileSystemEntry>? OnItemDoubleClicked { get; init; }
+        public Action<Donkeh.UILab.ContextMenuEvent, FileSystemEntry>? OnItemContextMenu { get; init; }
+        public string SortColumn { get; init; } = "name";
+        public bool SortAscending { get; init; } = true;
+        public Action<string>? OnSort { get; init; }
+        public FileBrowserTheme? Theme { get; init; }
+    }
+
+    public sealed class FileBrowserList : Component<FileBrowserListProps>
+    {
+        private FileBrowserListProps PropsValue => Props ?? new FileBrowserListProps();
+        private bool IsSelected(FileSystemEntry entry) =>
+            PropsValue.Selection.Any(s => string.Equals(s.FullPath, entry.FullPath, StringComparison.OrdinalIgnoreCase));
+
+        public override Node Render()
+        {
+            var PropsValue = Props as FileBrowserListProps ?? new FileBrowserListProps();
+            var theme = PropsValue.Theme;
+            var style = theme != null ? theme.ToCssVariables() : "";
+            var attrs = string.IsNullOrEmpty(style) ? null : new Dictionary<string, string> { ["style"] = style };
+
+            return (
+                <div className="file-browser-list" attributes={attrs}>
+                    <div className="file-browser-list-header">
+                        <div className="col col-name sortable" onClick={() => PropsValue.OnSort?.Invoke("name")}>{"Name"}{PropsValue.SortColumn == "name" ? <span className="sort-arrow">{PropsValue.SortAscending ? "▲" : "▼"}</span> : null}</div>
+                        <div className="col col-type sortable" onClick={() => PropsValue.OnSort?.Invoke("type")}>{"Type"}{PropsValue.SortColumn == "type" ? <span className="sort-arrow">{PropsValue.SortAscending ? "▲" : "▼"}</span> : null}</div>
+                        <div className="col col-size sortable" onClick={() => PropsValue.OnSort?.Invoke("size")}>{"Size"}{PropsValue.SortColumn == "size" ? <span className="sort-arrow">{PropsValue.SortAscending ? "▲" : "▼"}</span> : null}</div>
+                        <div className="col col-date sortable" onClick={() => PropsValue.OnSort?.Invoke("date")}>{"Date modified"}{PropsValue.SortColumn == "date" ? <span className="sort-arrow">{PropsValue.SortAscending ? "▲" : "▼"}</span> : null}</div>
+                    </div>
+                    <div className="file-browser-list-body">
+                        {Each(PropsValue.Items, item =>
+                            <FileBrowserItem
+                                Entry={item}
+                                Selected={IsSelected(item)}
+                                ViewMode={FileBrowserViewMode.List}
+                                Theme={PropsValue.Theme}
+                                OnItemClicked={(ctrl, shift) => PropsValue.OnItemClicked?.Invoke(item, ctrl, shift)}
+                                OnDoubleClick={() => PropsValue.OnItemDoubleClicked?.Invoke(item)}
+                                OnContextMenu={(e) => PropsValue.OnItemContextMenu?.Invoke(e, item)} />)}
+                    </div>
+                </div>
+            );
+        }
+    }
+}

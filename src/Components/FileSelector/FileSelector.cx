@@ -2,20 +2,66 @@ using Donkeh.UILab;
 using static Donkeh.UILab._;
 using static Donkeh.UILab.HtmlHelper;
 
-namespace OpenCreativeSuite.Components
-{
-    public class FileSelectorProps
-    {
+[assembly: Donkeh.UILab.Stylesheet("src/Components/FileSelector/FileSelector.css")]
 
+namespace OpenCreativeSuite.Files
+{
+    public sealed class FileSelectorProps : Props
+    {
+        public string Text { get; init; } = "Select file";
+        public bool Multiple { get; init; } = false;
+        public string[] AllowedExtensions { get; init; } = Array.Empty<string>();
+        public string[] ExcludedExtensions { get; init; } = Array.Empty<string>();
+        public string InitialPath { get; init; } = "";
+        public FileBrowserViewMode InitialView { get; init; } = FileBrowserViewMode.List;
+        public IFileSystemProvider? FileSystemProvider { get; init; }
+        public RecentItemsService? RecentItemsService { get; init; }
+        public FileBrowserTheme? Theme { get; init; }
+        public bool DarkMode { get; init; }
+        public Action<IReadOnlyList<FileSystemEntry>>? OnSelectionChanged { get; init; }
     }
 
-    public class FileSelector : Component<FileSelectorProps>
+    public sealed class FileSelector : Component<FileSelectorProps>
     {
+        private FileSelectorProps PropsValue => Props ?? new FileSelectorProps();
+
         public override Node Render()
         {
+            var PropsValue = Props as FileSelectorProps ?? new FileSelectorProps();
+            var (selected, setSelected) = State<List<FileSystemEntry>>(new List<FileSystemEntry>());
+
+            var theme = PropsValue.Theme ?? (PropsValue.DarkMode ? FileBrowserTheme.Dark : FileBrowserTheme.Light);
+            var style = theme.ToCssVariables();
+
+            var display = selected.Count == 0
+                ? PropsValue.Text
+                : (selected.Count == 1 ? selected[0].Name : $"{selected.Count} files selected");
+
             return (
-                <div className="file-selector-root">
-                    
+                <div className="file-selector-root" attributes={new Dictionary<string, string> { ["style"] = style }}>
+                    <button className="file-selector-button" onClick={() => {
+                        Console.WriteLine("Opening filebrowser");
+                        FileBrowserDialogService.Open(new FileBrowserDialogRequest
+                        {
+                            Title = "Select file",
+                            InitialPath = PropsValue.InitialPath,
+                            InitialView = PropsValue.InitialView,
+                            AllowMultiSelect = PropsValue.Multiple,
+                            AllowFileSelection = true,
+                            AllowDirectorySelection = false,
+                            AllowedExtensions = PropsValue.AllowedExtensions,
+                            ExcludedExtensions = PropsValue.ExcludedExtensions,
+                            FileSystemProvider = PropsValue.FileSystemProvider,
+                            RecentItemsService = PropsValue.RecentItemsService,
+                            Theme = theme,
+                            OnConfirm = (items) =>
+                            {
+                                setSelected(items.ToList());
+                                PropsValue.OnSelectionChanged?.Invoke(items);
+                            }
+                        }); }}>
+                        {display}
+                    </button>
                 </div>
             );
         }

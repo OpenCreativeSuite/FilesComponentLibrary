@@ -1,0 +1,187 @@
+/* ==========================================================================
+   FileBrowserToolbar
+   ========================================================================== */
+
+.file-browser-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+    background-color: var(--file-browser-toolbar-background, #ffffff);
+    border-bottom: 1px solid var(--file-browser-border, #e2e8f0);
+    flex: none;
+}
+
+/* ---- Navigation -------------------------------------------------------- */
+
+.toolbar-nav {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: none;
+}
+
+.toolbar-btn {
+    display: inline-block;
+    height: 30px;
+    min-width: 30px;
+    padding: 0 9px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background-color: transparent;
+    color: var(--file-browser-text-muted, #64748b);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 28px;
+    text-align: center;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 120ms ease, color 120ms ease;
+}
+
+.toolbar-btn:hover:not(:disabled) {
+    background-color: var(--file-browser-surface-hover, #f1f5f9);
+    color: var(--file-browser-text, #0f172a);
+}
+
+.toolbar-btn:active:not(:disabled) {
+    background-color: var(--file-browser-border, #e2e8f0);
+}
+
+.toolbar-btn:focus-visible {
+    outline: 2px solid var(--file-browser-focus, #2563eb);
+    outline-offset: -2px;
+}
+
+.toolbar-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.toolbar-btn.icon {
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 28px;
+    padding: 0;
+}
+
+/* ---- Breadcrumbs ------------------------------------------------------- */
+
+.toolbar-breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    flex: 1 1 180px;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.breadcrumb {
+    display: inline-block;
+    max-width: 190px;
+    height: 26px;
+    padding: 0 7px;
+    border: none;
+    border-radius: 6px;
+    background-color: transparent;
+    color: var(--file-browser-text-muted, #64748b);
+    font-family: inherit;
+    font-size: 12.5px;
+    line-height: 26px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    flex: none;
+    vertical-align: middle;
+}
+
+.breadcrumb-group {
+    display: inline-block;
+    white-space: nowrap;
+    flex: none;
+}
+
+.breadcrumb:hover {
+    background-color: var(--file-browser-surface-hover, #f1f5f9);
+    color: var(--file-browser-text, #0f172a);
+}
+
+.breadcrumb.current {
+    color: var(--file-browser-text, #0f172a);
+    font-weight: 600;
+}
+
+.breadcrumb-sep {
+    display: inline-block;
+    color: #cbd5e1;
+    font-size: 12px;
+    line-height: 26px;
+    flex: none;
+}
+
+/* ---- Search ------------------------------------------------------------ */
+
+.toolbar-search {
+    flex: 0 1 210px;
+    min-width: 130px;
+}
+
+.toolbar-search input {
+    display: block;
+    width: 100%;
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid var(--file-browser-border, #e2e8f0);
+    border-radius: 8px;
+    background-color: var(--file-browser-surface, #ffffff);
+    color: var(--file-browser-text, #0f172a);
+    font-family: inherit;
+    font-size: 12.5px;
+    line-height: 28px;
+    box-sizing: border-box;
+}
+
+.toolbar-search input:hover {
+    border-color: #cbd5e1;
+}
+
+.toolbar-search input:focus {
+    outline: none;
+    border-color: var(--file-browser-accent, #2563eb);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+/* ---- View switch ------------------------------------------------------- */
+
+.toolbar-view {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: none;
+    padding: 2px;
+    border-radius: 8px;
+    background-color: var(--file-browser-surface-hover, #f1f5f9);
+}
+
+.toolbar-view .toolbar-btn {
+    height: 26px;
+    min-width: 44px;
+    padding: 0 10px;
+    line-height: 26px;
+    font-size: 12px;
+    color: var(--file-browser-text-muted, #64748b);
+}
+
+.toolbar-view .toolbar-btn.active {
+    background-color: var(--file-browser-surface, #ffffff);
+    color: var(--file-browser-text, #0f172a);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.14);
+}
+
+.toolbar-view .toolbar-btn.active:hover {
+    background-color: var(--file-browser-surface, #ffffff);
+}

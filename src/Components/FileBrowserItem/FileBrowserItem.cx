@@ -1,0 +1,135 @@
+using Donkeh.UILab;
+using static Donkeh.UILab._;
+using static Donkeh.UILab.HtmlHelper;
+
+[assembly: Donkeh.UILab.Stylesheet("src/Components/FileBrowserItem/FileBrowserItem.css")]
+
+namespace OpenCreativeSuite.Files
+{
+    public sealed class FileBrowserItemProps
+    {
+        public FileSystemEntry Entry { get; init; } = new FileSystemEntry("file", "", false);
+        public bool Selected { get; init; }
+        public FileBrowserViewMode ViewMode { get; init; } = FileBrowserViewMode.List;
+        public Action? OnClick { get; init; }
+        public Action<bool, bool>? OnItemClicked { get; init; }
+        public Action? OnDoubleClick { get; init; }
+        public Action<Donkeh.UILab.ContextMenuEvent>? OnContextMenu { get; init; }
+        public FileBrowserTheme? Theme { get; init; }
+    }
+
+    public sealed class FileBrowserItem : Component<FileBrowserItemProps>
+    {
+        private FileBrowserItemProps PropsValue => Props ?? new FileBrowserItemProps();
+        private static string KindClass(FileSystemEntry entry)
+        {
+            if (entry.IsDirectory) return "folder";
+            var ext = (entry.Extension ?? "").ToLowerInvariant();
+            if (string.IsNullOrEmpty(ext)) ext = System.IO.Path.GetExtension(entry.Name).ToLowerInvariant();
+            return ext switch
+            {
+                ".png" or ".jpg" or ".jpeg" or ".gif" or ".webp" or ".bmp" or ".svg" or ".ico" => "image",
+                ".txt" or ".md" or ".json" or ".xml" or ".csv" or ".log" or ".yml" or ".yaml" => "doc",
+                ".cs" or ".js" or ".ts" or ".tsx" or ".jsx" or ".py" or ".java" or ".cpp" or ".h" or ".css" or ".html" => "code",
+                ".zip" or ".rar" or ".7z" or ".tar" or ".gz" or ".bz2" => "archive",
+                ".mp3" or ".wav" or ".flac" or ".ogg" or ".m4a" => "audio",
+                ".mp4" or ".avi" or ".mkv" or ".mov" or ".webm" => "video",
+                ".pdf" => "pdf",
+                _ => "file"
+            };
+        }
+
+        private static string BadgeText(FileSystemEntry entry)
+        {
+            if (entry.IsDirectory) return "";
+            var ext = (entry.Extension ?? "").TrimStart('.');
+            if (string.IsNullOrEmpty(ext)) ext = System.IO.Path.GetExtension(entry.Name).TrimStart('.');
+            if (string.IsNullOrEmpty(ext)) return "FILE";
+            ext = ext.ToUpperInvariant();
+            return ext.Length > 4 ? ext.Substring(0, 4) : ext;
+        }
+
+        private static string TypeLabel(FileSystemEntry entry)
+        {
+            var ext = (entry.Extension ?? "").TrimStart('.');
+            if (string.IsNullOrEmpty(ext)) ext = System.IO.Path.GetExtension(entry.Name).TrimStart('.');
+            if (string.IsNullOrEmpty(ext)) return "File";
+            ext = ext.ToUpperInvariant();
+            return ext.Length > 4 ? ext.Substring(0, 4) : ext;
+        }
+
+        private static string FormatSize(long bytes)
+        {
+            if (bytes < 1024) return bytes + " B";
+            double v = bytes;
+            string[] units = { "B", "KB", "MB", "GB", "TB" };
+            int i = 0;
+            while (v >= 1024 && i < units.Length - 1) { v /= 1024; i++; }
+            return $"{v:0.##} {units[i]}";
+        }
+
+        public override Node Render()
+        {
+            var PropsValue = Props as FileBrowserItemProps ?? new FileBrowserItemProps();
+            var (lastClick, setLastClick) = State(0L);
+            var entry = PropsValue.Entry;
+            var selected = PropsValue.Selected;
+            var mode = PropsValue.ViewMode;
+            var theme = PropsValue.Theme;
+
+            var rootClass = mode == FileBrowserViewMode.Grid
+                ? "file-browser-item file-browser-item-grid" + (selected ? " selected" : "")
+                : "file-browser-item file-browser-item-list" + (selected ? " selected" : "");
+
+            string style = theme != null ? theme.ToCssVariables() : "";
+
+            if (mode == FileBrowserViewMode.Grid)
+            {
+                return (
+                    <div className={rootClass}
+                         attributes={string.IsNullOrEmpty(style) ? null : new Dictionary<string, string> { ["style"] = style }}
+                         onClick={() => PropsValue.OnClick?.Invoke()}
+                         onClickEvent={(e) => {
+                            var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                            if (now - lastClick < 400) {
+                                setLastClick(0L);
+                                PropsValue.OnDoubleClick?.Invoke();
+                            } else {
+                                setLastClick(now);
+                                PropsValue.OnItemClicked?.Invoke(e.Modifiers.HasFlag(Donkeh.UILab.KeyModifiers.Control), e.Modifiers.HasFlag(Donkeh.UILab.KeyModifiers.Shift));
+                            }
+                         }}
+                         onContextMenu={(e) => PropsValue.OnContextMenu?.Invoke(e)}>
+                        <div className={"item-icon-large " + KindClass(entry)}>{BadgeText(entry)}</div>
+                        <div className="item-name">{entry.Name}</div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className={rootClass}
+                     attributes={string.IsNullOrEmpty(style) ? null : new Dictionary<string, string> { ["style"] = style }}
+                     onClick={() => PropsValue.OnClick?.Invoke()}
+                     onClickEvent={(e) => {
+                        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                        if (now - lastClick < 400) {
+                            setLastClick(0L);
+                            PropsValue.OnDoubleClick?.Invoke();
+                        } else {
+                            setLastClick(now);
+                            PropsValue.OnItemClicked?.Invoke(e.Modifiers.HasFlag(Donkeh.UILab.KeyModifiers.Control), e.Modifiers.HasFlag(Donkeh.UILab.KeyModifiers.Shift));
+                        }
+                     }}
+                     onContextMenu={(e) => PropsValue.OnContextMenu?.Invoke(e)}>
+                    <div className="col col-name">
+                        <span className={"item-icon " + KindClass(entry)}>{BadgeText(entry)}</span>
+                        <span className="item-name">{entry.Name}</span>
+                    </div>
+                    <div className="col col-type">{entry.IsDirectory ? "Folder" : TypeLabel(entry)}</div>
+                    <div className="col col-size">{entry.IsDirectory ? "—" : FormatSize(entry.Size)}</div>
+                    <div className="col col-date">{entry.Modified == default ? "" : entry.Modified.ToString("yyyy-MM-dd HH:mm")}</div>
+                </div>
+            );
+        }
+    }
+}

@@ -1,0 +1,80 @@
+using Donkeh.UILab;
+using static Donkeh.UILab._;
+using static Donkeh.UILab.HtmlHelper;
+
+[assembly: Donkeh.UILab.Stylesheet("src/Components/FileBrowserDialog/FileBrowserDialog.css")]
+
+namespace OpenCreativeSuite.Files
+{
+    public sealed class FileBrowserDialogProps
+    {
+        public bool Open { get; init; }
+        public string Title { get; init; } = "Select";
+        public string InitialPath { get; init; } = "";
+        public FileBrowserViewMode InitialView { get; init; } = FileBrowserViewMode.List;
+        public bool AllowMultiSelect { get; init; } = false;
+        public bool AllowFileSelection { get; init; } = true;
+        public bool AllowDirectorySelection { get; init; } = false;
+        public string[] AllowedExtensions { get; init; } = Array.Empty<string>();
+        public string[] ExcludedExtensions { get; init; } = Array.Empty<string>();
+        public IFileSystemProvider? FileSystemProvider { get; init; }
+        public RecentItemsService? RecentItemsService { get; init; }
+        public FileBrowserTheme? Theme { get; init; }
+        public bool DarkMode { get; init; }
+        public Action<IReadOnlyList<FileSystemEntry>>? OnConfirm { get; init; }
+        public Action? OnCancel { get; init; }
+    }
+
+    public sealed class FileBrowserDialog : Component<FileBrowserDialogProps>
+    {
+        private FileBrowserDialogProps PropsValue => Props ?? new FileBrowserDialogProps();
+        public override Node Render()
+        {
+            var PropsValue = Props as FileBrowserDialogProps ?? new FileBrowserDialogProps();
+            var (selected, setSelected) = State<List<FileSystemEntry>>(new List<FileSystemEntry>());
+
+            var theme = PropsValue.Theme ?? (PropsValue.DarkMode ? FileBrowserTheme.Dark : FileBrowserTheme.Light);
+            var style = theme.ToCssVariables();
+
+            bool canConfirm = selected.Count > 0;
+            if (!PropsValue.AllowMultiSelect && selected.Count != 1) canConfirm = false;
+            if (!PropsValue.AllowFileSelection && selected.Any(e => !e.IsDirectory)) canConfirm = false;
+            if (!PropsValue.AllowDirectorySelection && selected.Any(e => e.IsDirectory)) canConfirm = false;
+
+            var overlayStyle = style
+                + ";width:100%;height:100%;z-index:2417147;"
+                + "display:flex;align-items:center;justify-content:center;"
+                + "pointer-events:" + (PropsValue.Open ? "auto" : "none") + ";"
+                + "background-color:" + (PropsValue.Open ? "rgba(15,23,42,0.48)" : "transparent") + ";";
+
+            var dialogStyle = style + ";z-index:2417147;width:760px;height:560px;"
+                + (PropsValue.Open ? "visibility:visible;" : "visibility:hidden;");
+
+            return (
+                <div className="file-browser-dialog-overlay" attributes={new Dictionary<string, string> { ["style"] = overlayStyle }}>
+                    <div className="file-browser-dialog" attributes={new Dictionary<string, string> { ["style"] = dialogStyle }}>
+                        <div className="dialog-header">{PropsValue.Title}</div>
+                        <div className="dialog-body">
+                            <FileBrowser
+                                InitialPath={PropsValue.InitialPath}
+                                InitialView={PropsValue.InitialView}
+                                AllowMultiSelect={PropsValue.AllowMultiSelect}
+                                AllowFileSelection={PropsValue.AllowFileSelection}
+                                AllowDirectorySelection={PropsValue.AllowDirectorySelection}
+                                AllowedExtensions={PropsValue.AllowedExtensions}
+                                ExcludedExtensions={PropsValue.ExcludedExtensions}
+                                FileSystemProvider={PropsValue.FileSystemProvider}
+                                RecentItemsService={PropsValue.RecentItemsService}
+                                Theme={theme}
+                                OnSelectionChanged={(items) => setSelected(items.ToList())} />
+                        </div>
+                        <div className="dialog-footer">
+                            <button className="dialog-btn" onClick={() => PropsValue.OnCancel?.Invoke()}>Cancel</button>
+                            <button className="dialog-btn primary" disabled={!canConfirm} onClick={() => PropsValue.OnConfirm?.Invoke(selected)}>Select</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+    }
+}

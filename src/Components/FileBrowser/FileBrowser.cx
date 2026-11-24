@@ -1,0 +1,403 @@
+using Donkeh.UILab;
+using static Donkeh.UILab._;
+using static Donkeh.UILab.HtmlHelper;
+using System.IO;
+
+[assembly: Donkeh.UILab.Stylesheet("src/Components/FileBrowser/FileBrowser.css")]
+
+namespace OpenCreativeSuite.Files
+{
+    public sealed class FileBrowserProps : Props
+    {
+        public string InitialPath { get; init; } = "";
+        public FileBrowserViewMode InitialView { get; init; } = FileBrowserViewMode.List;
+        public bool AllowMultiSelect { get; init; } = true;
+        public bool AllowFileSelection { get; init; } = true;
+        public bool AllowDirectorySelection { get; init; } = true;
+        public string[] AllowedExtensions { get; init; } = Array.Empty<string>();
+        public string[] ExcludedExtensions { get; init; } = Array.Empty<string>();
+        public Action<FileSystemEntry>? OnOpen { get; init; }
+        public Action<IReadOnlyList<FileSystemEntry>>? OnSelectionChanged { get; init; }
+        public IFileSystemProvider? FileSystemProvider { get; init; }
+        public RecentItemsService? RecentItemsService { get; init; }
+        public FileBrowserTheme? Theme { get; init; }
+        public bool DarkMode { get; init; }
+    }
+
+    public sealed class FileBrowser : Component<FileBrowserProps>
+    {
+        private const int MaxEntries = 5000;
+
+        private FileBrowserProps PropsValue => Props ?? new FileBrowserProps();
+        private IFileSystemProvider Provider => (Props?.FileSystemProvider) ?? new LocalFileSystemProvider();
+        private RecentItemsService Recent => (Props?.RecentItemsService) ?? RecentItemsService.Default;
+
+        private static string NormalizeInitial(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                try { return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile); }
+                catch { return Directory.GetCurrentDirectory(); }
+            }
+            return path;
+        }
+
+        private bool IsAllowed(FileSystemEntry entry)
+        {
+            if (entry.IsDirectory) return true;
+            var ext = string.IsNullOrEmpty(entry.Extension) ? Path.GetExtension(entry.Name) : entry.Extension;
+            if (PropsValue.AllowedExtensions != null && PropsValue.AllowedExtensions.Length > 0)
+            {
+                if (!PropsValue.AllowedExtensions.Any(e => string.Equals(e, ext, StringComparison.OrdinalIgnoreCase))) return false;
+            }
+            if (PropsValue.ExcludedExtensions != null && PropsValue.ExcludedExtensions.Length > 0)
+            {
+                if (PropsValue.ExcludedExtensions.Any(e => string.Equals(e, ext, StringComparison.OrdinalIgnoreCase))) return false;
+            }
+            return true;
+        }
+
+        private List<FileSystemEntry> SortEntries(List<FileSystemEntry> items, string column, bool asc)
+        {
+            IEnumerable<FileSystemEntry> dirs = items.Where(i => i.IsDirectory);
+            IEnumerable<FileSystemEntry> files = items.Where(i => !i.IsDirectory);
+            Func<FileSystemEntry, object> key = column switch
+            {
+                "type" => e => e.IsDirectory ? "Folder" : (string.IsNullOrEmpty(e.Extension) ? Path.GetExtension(e.Name) : e.Extension),
+                "size" => e => e.Size,
+                "date" => e => e.Modified,
+                _ => e => e.Name
+            };
+            dirs = asc ? dirs.OrderBy(key) : dirs.OrderByDescending(key);
+            files = asc ? files.OrderBy(key) : files.OrderByDescending(key);
+            return dirs.Concat(files).ToList();
+        }
+
+        public override Node Render()
+        {
+            var PropsValue = Props as FileBrowserProps ?? new FileBrowserProps();
+            var (currentPath, setCurrentPath) = State(NormalizeInitial(PropsValue.InitialPath));
+            var (viewMode, setViewMode) = State(PropsValue.InitialView);
+            var (selection, setSelection) = State<List<FileSystemEntry>>(new List<FileSystemEntry>());
+            var (entries, setEntries) = State<List<FileSystemEntry>>(new List<FileSystemEntry>());
+            var (loading, setLoading) = State(false);
+            var (error, setError) = State<string?>(() => null);
+            var (search, setSearch) = State("");
+            var (sortColumn, setSortColumn) = State("name");
+            var (sortAsc, setSortAsc) = State(true);
+            var (history, setHistory) = State<List<string>>(new List<string>());
+            var (forward, setForward) = State<List<string>>(new List<string>());
+            var (contextState, setContextState) = State<FileBrowserContextMenuState?>(() => null);
+            var (reloadToken, setReloadToken) = State(0);
+
+            var theme = PropsValue.Theme ?? (PropsValue.DarkMode ? FileBrowserTheme.Dark : FileBrowserTheme.Light);
+
+            // Load the directory whenever the path or the reload token changes.
+            // Donkeh state setters must run on the renderer thread, so the provider
+            // task is completed here rather than in a background continuation. This
+            // guarantees the loading flag is always cleared in the same commit.
+            Effect(() =>
+            {
+                setLoading(true);
+                setError(null);
+                try
+                {
+                    var result = Provider.EnumerateAsync(currentPath).GetAwaiter().GetResult();
+                    setEntries(result.Where(IsAllowed).Take(MaxEntries).ToList());
+
+                    var entry = Provider.GetEntryAsync(currentPath).GetAwaiter().GetResult();
+                    if (entry != null) Recent.AddDirectory(entry);
+                }
+                catch (Exception ex)
+                {
+                    setError(ex.Message);
+                    setEntries(new List<FileSystemEntry>());
+                }
+                finally
+                {
+                    setLoading(false);
+                }
+                return null;
+            }, new object[] { currentPath, reloadToken });
+
+            // derived filtered by search
+            var searchFiltered = string.IsNullOrWhiteSpace(search)
+                ? entries
+                : entries.Where(e => e.Name.Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
+            var sorted = SortEntries(searchFiltered, sortColumn, sortAsc);
+
+            // navigation helpers
+            void Navigate(string path)
+            {
+                if (string.IsNullOrWhiteSpace(path) || path == currentPath) return;
+                var newHistory = new List<string>(history) { currentPath };
+                setHistory(newHistory);
+                setForward(new List<string>());
+                setCurrentPath(path);
+                setSelection(new List<FileSystemEntry>());
+            }
+
+            void GoBack()
+            {
+                if (history.Count == 0) return;
+                var h = new List<string>(history);
+                var prev = h[h.Count - 1];
+                h.RemoveAt(h.Count - 1);
+                var f = new List<string>(forward) { currentPath };
+                setForward(f);
+                setHistory(h);
+                setCurrentPath(prev);
+                setSelection(new List<FileSystemEntry>());
+            }
+
+            void GoForward()
+            {
+                if (forward.Count == 0) return;
+                var f = new List<string>(forward);
+                var next = f[f.Count - 1];
+                f.RemoveAt(f.Count - 1);
+                var h = new List<string>(history) { currentPath };
+                setHistory(h);
+                setForward(f);
+                setCurrentPath(next);
+                setSelection(new List<FileSystemEntry>());
+            }
+
+            void GoUp()
+            {
+                if (Provider.IsRoot(currentPath)) return;
+                Navigate(Provider.GetParentPath(currentPath));
+            }
+
+            void Refresh()
+            {
+                setReloadToken(reloadToken + 1);
+            }
+
+            void SetSelection(List<FileSystemEntry> newSel)
+            {
+                setSelection(newSel);
+                PropsValue.OnSelectionChanged?.Invoke(newSel);
+            }
+
+            void SelectItem(FileSystemEntry item, bool ctrl, bool shift)
+            {
+                List<FileSystemEntry> newSel;
+                if (!PropsValue.AllowMultiSelect || (!ctrl && !shift))
+                {
+                    newSel = new List<FileSystemEntry> { item };
+                }
+                else if (ctrl)
+                {
+                    newSel = new List<FileSystemEntry>(selection);
+                    if (newSel.Any(s => string.Equals(s.FullPath, item.FullPath, StringComparison.OrdinalIgnoreCase)))
+                        newSel.RemoveAll(s => string.Equals(s.FullPath, item.FullPath, StringComparison.OrdinalIgnoreCase));
+                    else
+                        newSel.Add(item);
+                }
+                else
+                {
+                    // shift: select range in current sorted list
+                    newSel = new List<FileSystemEntry>(selection);
+                    if (!newSel.Any(s => string.Equals(s.FullPath, item.FullPath, StringComparison.OrdinalIgnoreCase)))
+                        newSel.Add(item);
+                }
+                SetSelection(newSel);
+            }
+
+            void OpenItem(FileSystemEntry item)
+            {
+                if (item.IsDirectory)
+                {
+                    Navigate(item.FullPath);
+                }
+                else
+                {
+                    Recent.AddFile(item);
+                    PropsValue.OnOpen?.Invoke(item);
+                }
+            }
+
+            void ShowContextMenu(FileSystemEntry? item, double x, double y)
+            {
+                var sel = selection.Count > 0 ? new List<FileSystemEntry>(selection) : new List<FileSystemEntry>();
+                if (item != null && !sel.Any(s => string.Equals(s.FullPath, item.FullPath, StringComparison.OrdinalIgnoreCase)))
+                {
+                    sel = new List<FileSystemEntry> { item };
+                    SetSelection(sel);
+                }
+                var request = new FileBrowserContextRequest
+                {
+                    Selection = sel,
+                    Target = item,
+                    CurrentPath = currentPath,
+                    Browser = this
+                };
+
+                var defaults = new List<FileBrowserContextItem>();
+
+                // Open
+                defaults.Add(new FileBrowserContextItem
+                {
+                    Label = "Open",
+                    Icon = "▶",
+                    OnClick = (req) => { foreach (var e in req.Selection) OpenItem(e); }
+                });
+
+                if (item != null && item.IsDirectory)
+                {
+                    defaults.Add(new FileBrowserContextItem
+                    {
+                        Label = "Refresh",
+                        Icon = "⟳",
+                        ForDirectory = true,
+                        OnClick = (req) => Refresh()
+                    });
+                }
+
+                defaults.Add(new FileBrowserContextItem { IsSeparator = true });
+
+                defaults.Add(new FileBrowserContextItem
+                {
+                    Label = "Copy path",
+                    Icon = "⧉",
+                    OnClick = (req) => { FileBrowserClipboard.Text = string.Join(Environment.NewLine, req.Selection.Select(e => e.FullPath)); }
+                });
+
+                if (item != null && !item.IsDirectory)
+                {
+                    defaults.Add(new FileBrowserContextItem
+                    {
+                        Label = "Copy filename",
+                        Icon = "▤",
+                        ForDirectory = false,
+                        OnClick = (req) => { FileBrowserClipboard.Text = string.Join(Environment.NewLine, req.Selection.Select(e => e.Name)); }
+                    });
+
+                    defaults.Add(new FileBrowserContextItem
+                    {
+                        Label = "Copy",
+                        Icon = "⧉",
+                        ForDirectory = false,
+                        OnClick = (req) =>
+                        {
+                            Task.Run(async () =>
+                            {
+                                foreach (var e in req.Selection)
+                                {
+                                    var dir = Path.GetDirectoryName(e.FullPath) ?? "";
+                                    var name = Path.GetFileNameWithoutExtension(e.Name) + " - Copy" + Path.GetExtension(e.Name);
+                                    await Provider.CopyAsync(e.FullPath, Path.Combine(dir, name));
+                                }
+                                Refresh();
+                            });
+                        }
+                    });
+                }
+
+                defaults.Add(new FileBrowserContextItem
+                {
+                    Label = "Rename",
+                    Icon = "✏",
+                    OnClick = (req) => { /* no-op: consumer/provider can handle */ }
+                });
+
+                defaults.Add(new FileBrowserContextItem
+                {
+                    Label = "Delete",
+                    Icon = "✕",
+                    OnClick = (req) =>
+                    {
+                        Task.Run(async () =>
+                        {
+                            foreach (var e in req.Selection) await Provider.DeleteAsync(e.FullPath);
+                            Refresh();
+                        });
+                    }
+                });
+
+                defaults.Add(new FileBrowserContextItem
+                {
+                    Label = "Properties",
+                    Icon = "ℹ",
+                    OnClick = (req) => { /* no-op */ }
+                });
+
+                var items = FileBrowserContextRegistry.Default.Resolve(request, defaults);
+                setContextState(new FileBrowserContextMenuState { X = x, Y = y, Items = items, Request = request });
+            }
+
+            var canGoUp = !Provider.IsRoot(currentPath);
+
+            var style = theme.ToCssVariables();
+
+            var commonDirs = Provider.GetCommonDirectories();
+
+            return (
+                <div className="file-browser-root" attributes={new Dictionary<string, string> { ["style"] = style }}>
+                    <FileBrowserToolbar
+                        CurrentPath={currentPath}
+                        CanGoBack={history.Count > 0}
+                        CanGoForward={forward.Count > 0}
+                        CanGoUp={canGoUp}
+                        SearchQuery={search}
+                        ViewMode={viewMode}
+                        Theme={theme}
+                        OnBack={GoBack}
+                        OnForward={GoForward}
+                        OnUp={GoUp}
+                        OnRefresh={Refresh}
+                        OnSearchChanged={(v) => setSearch(v)}
+                        OnViewModeChanged={(m) => setViewMode(m)}
+                        OnNavigate={Navigate} />
+                    <div className="file-browser-body">
+                        <FileBrowserSidebar
+                            CommonDirectories={commonDirs}
+                            RecentDirectories={Recent.RecentDirectories}
+                            RecentFiles={Recent.RecentFiles}
+                            Theme={theme}
+                            OnNavigate={Navigate}
+                            OnOpenRecent={(e) => { if (e.IsDirectory) Navigate(e.FullPath); else OpenItem(e); }}
+                            OnClearRecent={() => Recent.ClearAll()} />
+                        <div className="file-browser-content">
+                            {Show(loading, <div className="file-browser-status">Loading…</div>)}
+                            {Show(error != null, <div className="file-browser-error">{error ?? ""}</div>)}
+                            {Show(!loading && error == null && sorted.Count == 0, <div className="file-browser-empty">Empty folder</div>)}
+                            {Show(!loading && error == null && sorted.Count > 0 && viewMode == FileBrowserViewMode.List,
+                                <FileBrowserList
+                                    Items={sorted}
+                                    Selection={selection}
+                                    Theme={theme}
+                                    SortColumn={sortColumn}
+                                    SortAscending={sortAsc}
+                                    OnItemClicked={(item, ctrl, shift) => SelectItem(item, ctrl, shift)}
+                                    OnItemDoubleClicked={OpenItem}
+                                    OnItemContextMenu={(e, item) => ShowContextMenu(item, e.ClientX, e.ClientY)}
+                                    OnSort={(col) => {
+                                        if (sortColumn == col) setSortAsc(!sortAsc);
+                                        else { setSortColumn(col); setSortAsc(true); }
+                                    }} />)}
+                            {Show(!loading && error == null && sorted.Count > 0 && viewMode == FileBrowserViewMode.Grid,
+                                <FileBrowserGrid
+                                    Items={sorted}
+                                    Selection={selection}
+                                    Theme={theme}
+                                    OnItemClicked={(item, ctrl, shift) => SelectItem(item, ctrl, shift)}
+                                    OnItemDoubleClicked={OpenItem}
+                                    OnItemContextMenu={(e, item) => ShowContextMenu(item, e.ClientX, e.ClientY)} />)}
+                        </div>
+                    </div>
+                    {Show(contextState != null,
+                        <FileBrowserContextMenu
+                            Open={contextState != null}
+                            X={contextState != null ? contextState.X : 0}
+                            Y={contextState != null ? contextState.Y : 0}
+                            Items={contextState != null ? contextState.Items : Array.Empty<FileBrowserContextItem>()}
+                            Request={contextState != null ? contextState.Request : null}
+                            Theme={theme}
+                            OnClose={() => setContextState(null)} />)}
+                </div>
+            );
+        }
+    }
+}

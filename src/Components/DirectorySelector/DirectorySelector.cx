@@ -1,0 +1,64 @@
+using Donkeh.UILab;
+using static Donkeh.UILab._;
+using static Donkeh.UILab.HtmlHelper;
+
+[assembly: Donkeh.UILab.Stylesheet("src/Components/DirectorySelector/DirectorySelector.css")]
+
+namespace OpenCreativeSuite.Files
+{
+    public sealed class DirectorySelectorProps : Props
+    {
+        public string Text { get; init; } = "Select directory";
+        public bool Multiple { get; init; } = false;
+        public string InitialPath { get; init; } = "";
+        public FileBrowserViewMode InitialView { get; init; } = FileBrowserViewMode.List;
+        public IFileSystemProvider? FileSystemProvider { get; init; }
+        public RecentItemsService? RecentItemsService { get; init; }
+        public FileBrowserTheme? Theme { get; init; }
+        public bool DarkMode { get; init; }
+        public Action<IReadOnlyList<FileSystemEntry>>? OnSelectionChanged { get; init; }
+    }
+
+    public sealed class DirectorySelector : Component<DirectorySelectorProps>
+    {
+        private DirectorySelectorProps PropsValue => Props ?? new DirectorySelectorProps();
+
+        public override Node Render()
+        {
+            var PropsValue = Props as DirectorySelectorProps ?? new DirectorySelectorProps();
+            var (selected, setSelected) = State<List<FileSystemEntry>>(new List<FileSystemEntry>());
+
+            var theme = PropsValue.Theme ?? (PropsValue.DarkMode ? FileBrowserTheme.Dark : FileBrowserTheme.Light);
+            var style = theme.ToCssVariables();
+
+            var display = selected.Count == 0
+                ? PropsValue.Text
+                : (selected.Count == 1 ? selected[0].FullPath : $"{selected.Count} directories selected");
+
+            return (
+                <div className="directory-selector-root" attributes={new Dictionary<string, string> { ["style"] = style }}>
+                    <button className="directory-selector-button" onClick={() =>
+                        FileBrowserDialogService.Open(new FileBrowserDialogRequest
+                        {
+                            Title = "Select directory",
+                            InitialPath = PropsValue.InitialPath,
+                            InitialView = PropsValue.InitialView,
+                            AllowMultiSelect = PropsValue.Multiple,
+                            AllowFileSelection = false,
+                            AllowDirectorySelection = true,
+                            FileSystemProvider = PropsValue.FileSystemProvider,
+                            RecentItemsService = PropsValue.RecentItemsService,
+                            Theme = theme,
+                            OnConfirm = (items) =>
+                            {
+                                setSelected(items.ToList());
+                                PropsValue.OnSelectionChanged?.Invoke(items);
+                            }
+                        })}>
+                        {display}
+                    </button>
+                </div>
+            );
+        }
+    }
+}

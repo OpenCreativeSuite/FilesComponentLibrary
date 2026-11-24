@@ -2,17 +2,27 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>Files</RootNamespace>
+    <DonkehDesktop>true</DonkehDesktop>
+    <RootNamespace>OpenCreativeSuite.Files</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
     <PackageId>Files</PackageId>
     <Description>Files components for Donkeh.</Description>
-    <DonkehVersion Condition="'$(DonkehVersion)' == ''">1.0.48</DonkehVersion>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <DonkehVersion Condition="'$(DonkehVersion)' == ''">1.0.51</DonkehVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Components/**/*.css" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Donkeh.UILab" Version="$(DonkehVersion)" />
   </ItemGroup>
-
 </Project>

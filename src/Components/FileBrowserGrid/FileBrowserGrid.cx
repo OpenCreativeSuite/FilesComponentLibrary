@@ -1,0 +1,46 @@
+using Donkeh.UILab;
+using static Donkeh.UILab._;
+using static Donkeh.UILab.HtmlHelper;
+
+[assembly: Donkeh.UILab.Stylesheet("src/Components/FileBrowserGrid/FileBrowserGrid.css")]
+
+namespace OpenCreativeSuite.Files
+{
+    public sealed class FileBrowserGridProps
+    {
+        public IReadOnlyList<FileSystemEntry> Items { get; init; } = Array.Empty<FileSystemEntry>();
+        public IReadOnlyList<FileSystemEntry> Selection { get; init; } = Array.Empty<FileSystemEntry>();
+        public Action<FileSystemEntry, bool, bool>? OnItemClicked { get; init; }
+        public Action<FileSystemEntry>? OnItemDoubleClicked { get; init; }
+        public Action<Donkeh.UILab.ContextMenuEvent, FileSystemEntry>? OnItemContextMenu { get; init; }
+        public FileBrowserTheme? Theme { get; init; }
+    }
+
+    public sealed class FileBrowserGrid : Component<FileBrowserGridProps>
+    {
+        private FileBrowserGridProps PropsValue => Props ?? new FileBrowserGridProps();
+        private bool IsSelected(FileSystemEntry entry) =>
+            PropsValue.Selection.Any(s => string.Equals(s.FullPath, entry.FullPath, StringComparison.OrdinalIgnoreCase));
+
+        public override Node Render()
+        {
+            var PropsValue = Props as FileBrowserGridProps ?? new FileBrowserGridProps();
+            var style = PropsValue.Theme != null ? PropsValue.Theme.ToCssVariables() : "";
+            var attrs = string.IsNullOrEmpty(style) ? null : new Dictionary<string, string> { ["style"] = style };
+
+            return (
+                <div className="file-browser-grid" attributes={attrs}>
+                    {Each(PropsValue.Items, item =>
+                        <FileBrowserItem
+                            Entry={item}
+                            Selected={IsSelected(item)}
+                            ViewMode={FileBrowserViewMode.Grid}
+                            Theme={PropsValue.Theme}
+                            OnItemClicked={(ctrl, shift) => PropsValue.OnItemClicked?.Invoke(item, ctrl, shift)}
+                            OnDoubleClick={() => PropsValue.OnItemDoubleClicked?.Invoke(item)}
+                            OnContextMenu={(e) => PropsValue.OnItemContextMenu?.Invoke(e, item)} />)}
+                </div>
+            );
+        }
+    }
+}

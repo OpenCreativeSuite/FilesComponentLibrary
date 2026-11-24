@@ -1,0 +1,70 @@
+using Donkeh.UILab;
+using static Donkeh.UILab._;
+using static Donkeh.UILab.HtmlHelper;
+
+[assembly: Donkeh.UILab.Stylesheet("src/Components/FileBrowserSidebar/FileBrowserSidebar.css")]
+
+namespace OpenCreativeSuite.Files
+{
+    public sealed class FileBrowserSidebarProps
+    {
+        public IReadOnlyList<DirectoryShortcut> CommonDirectories { get; init; } = Array.Empty<DirectoryShortcut>();
+        public IReadOnlyList<FileSystemEntry> RecentDirectories { get; init; } = Array.Empty<FileSystemEntry>();
+        public IReadOnlyList<FileSystemEntry> RecentFiles { get; init; } = Array.Empty<FileSystemEntry>();
+        public Action<string>? OnNavigate { get; init; }
+        public Action<FileSystemEntry>? OnOpenRecent { get; init; }
+        public Action? OnClearRecent { get; init; }
+        public FileBrowserTheme? Theme { get; init; }
+    }
+
+    public sealed class FileBrowserSidebar : Component<FileBrowserSidebarProps>
+    {
+        private FileBrowserSidebarProps PropsValue => Props ?? new FileBrowserSidebarProps();
+        public override Node Render()
+        {
+            var PropsValue = Props as FileBrowserSidebarProps ?? new FileBrowserSidebarProps();
+            var theme = PropsValue.Theme;
+            var style = theme != null ? theme.ToCssVariables() : "";
+            var attrs = string.IsNullOrEmpty(style) ? null : new Dictionary<string, string> { ["style"] = style };
+
+            return (
+                <div className="file-browser-sidebar" attributes={attrs}>
+                    <div className="sidebar-section">
+                        <div className="sidebar-title">Locations</div>
+                        <div className="sidebar-list">
+                            {Each(PropsValue.CommonDirectories, shortcut =>
+                                <button className="sidebar-item" onClick={() => PropsValue.OnNavigate?.Invoke(shortcut.Path)}>
+                                    <span className="sidebar-icon">⌂</span>
+                                    <span className="sidebar-text">{shortcut.Label}</span>
+                                </button>)}
+                            {Show(PropsValue.CommonDirectories.Count == 0, <div className="sidebar-empty">No locations</div>)}
+                        </div>
+                    </div>
+                    <div className="sidebar-section">
+                        <div className="sidebar-title">Recent Directories</div>
+                        <div className="sidebar-list">
+                            {Each(PropsValue.RecentDirectories, entry =>
+                                <button className="sidebar-item" onClick={() => PropsValue.OnOpenRecent?.Invoke(entry)}>
+                                    <span className="sidebar-icon">↻</span>
+                                    <span className="sidebar-text">{entry.Name}</span>
+                                </button>)}
+                            {Show(PropsValue.RecentDirectories.Count == 0, <div className="sidebar-empty">Nothing yet</div>)}
+                        </div>
+                    </div>
+                    <div className="sidebar-section">
+                        <div className="sidebar-title">Recent Files</div>
+                        <div className="sidebar-list">
+                            {Each(PropsValue.RecentFiles, entry =>
+                                <button className="sidebar-item" onClick={() => PropsValue.OnOpenRecent?.Invoke(entry)}>
+                                    <span className="sidebar-icon">▤</span>
+                                    <span className="sidebar-text">{entry.Name}</span>
+                                </button>)}
+                            {Show(PropsValue.RecentFiles.Count == 0, <div className="sidebar-empty">Nothing yet</div>)}
+                        </div>
+                        <button className="sidebar-clear" onClick={() => PropsValue.OnClearRecent?.Invoke()}>Clear recent</button>
+                    </div>
+                </div>
+            );
+        }
+    }
+}

@@ -1,0 +1,75 @@
+/* ==========================================================================
+   FileBrowserList
+   One shared column template drives the header AND every row, so columns
+   always line up. Keep it in sync with FileBrowserItem.css by overriding
+   --file-browser-columns on .file-browser-list only.
+   ========================================================================== */
+
+.file-browser-list {
+    --file-browser-columns: minmax(0, 1fr) 92px 78px 146px;
+
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.file-browser-list-header {
+    display: grid;
+    grid-template-columns: var(--file-browser-columns);
+    column-gap: 12px;
+    align-items: center;
+    height: 36px;
+    padding: 0 16px;
+    flex: none;
+    background-color: var(--file-browser-surface, #ffffff);
+    border-bottom: 1px solid var(--file-browser-border, #e2e8f0);
+    color: var(--file-browser-text-muted, #64748b);
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 36px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    overflow: hidden;
+}
+
+.file-browser-list-header > * {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.file-browser-list-header .sortable {
+    cursor: pointer;
+    user-select: none;
+    border-radius: 4px;
+    transition: color 120ms ease;
+}
+
+.file-browser-list-header .sortable:hover {
+    color: var(--file-browser-text, #0f172a);
+}
+
+.file-browser-list-header .sortable:focus-visible {
+    outline: 2px solid var(--file-browser-focus, #2563eb);
+    outline-offset: 1px;
+}
+
+.file-browser-list-header .sort-arrow {
+    display: inline-block;
+    margin-left: 4px;
+    color: var(--file-browser-accent, #2563eb);
+    font-size: 9px;
+}
+
+.file-browser-list-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 6px 0;
+    box-sizing: border-box;
+}

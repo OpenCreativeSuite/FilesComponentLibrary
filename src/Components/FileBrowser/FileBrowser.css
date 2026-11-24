@@ -1,0 +1,118 @@
+/* ==========================================================================
+   FileBrowser — shell
+   Theme tokens are optional and can be overridden from any ancestor:
+   --file-browser-background / -surface / -surface-hover / -surface-selected
+   --file-browser-border / -text / -text-muted / -icon / -accent
+   ========================================================================== */
+
+.file-browser-root {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 320px;
+    overflow: hidden;
+    background-color: var(--file-browser-background, #ffffff);
+    color: var(--file-browser-text, #0f172a);
+    font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    line-height: 18px;
+    text-align: left;
+}
+
+.file-browser-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.file-browser-content {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+    padding: 0;
+}
+
+/* Slim, unobtrusive scrollbars */
+.file-browser-content,
+.file-browser-list-body,
+.file-browser-sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+.file-browser-content::-webkit-scrollbar,
+.file-browser-list-body::-webkit-scrollbar,
+.file-browser-sidebar::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.file-browser-content::-webkit-scrollbar-thumb,
+.file-browser-list-body::-webkit-scrollbar-thumb,
+.file-browser-sidebar::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+}
+
+.file-browser-content::-webkit-scrollbar-thumb:hover,
+.file-browser-list-body::-webkit-scrollbar-thumb:hover,
+.file-browser-sidebar::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8;
+    background-clip: content-box;
+}
+
+/* ---- Loading / empty / error ------------------------------------------ */
+
+.file-browser-status,
+.file-browser-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+    padding: 24px;
+    text-align: center;
+    color: var(--file-browser-text-muted, #64748b);
+    font-size: 13px;
+}
+
+.file-browser-status::before {
+    content: "";
+    display: block;
+    width: 14px;
+    height: 14px;
+    margin-right: 9px;
+    border: 2px solid var(--file-browser-border, #e2e8f0);
+    border-top-color: var(--file-browser-accent, #2563eb);
+    border-radius: 50%;
+    animation: file-browser-spin 700ms linear infinite;
+}
+
+@keyframes file-browser-spin {
+    to { transform: rotate(360deg); }
+}
+
+.file-browser-empty::before {
+    content: "";
+    display: block;
+    width: 26px;
+    height: 20px;
+    margin-right: 10px;
+    border: 2px solid var(--file-browser-border, #e2e8f0);
+    border-radius: 4px;
+    background-color: var(--file-browser-surface-hover, #f1f5f9);
+}
+
+.file-browser-error {
+    margin: 16px;
+    padding: 12px 14px;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    background-color: #fef2f2;
+    color: #b91c1c;
+    font-size: 13px;
+}

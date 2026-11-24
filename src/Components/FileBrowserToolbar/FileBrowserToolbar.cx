@@ -1,0 +1,84 @@
+using Donkeh.UILab;
+using static Donkeh.UILab._;
+using static Donkeh.UILab.HtmlHelper;
+
+[assembly: Donkeh.UILab.Stylesheet("src/Components/FileBrowserToolbar/FileBrowserToolbar.css")]
+
+namespace OpenCreativeSuite.Files
+{
+    public sealed class FileBrowserToolbarProps
+    {
+        public string CurrentPath { get; init; } = "";
+        public bool CanGoBack { get; init; }
+        public bool CanGoForward { get; init; }
+        public bool CanGoUp { get; init; }
+        public Action? OnBack { get; init; }
+        public Action? OnForward { get; init; }
+        public Action? OnUp { get; init; }
+        public Action? OnRefresh { get; init; }
+        public string SearchQuery { get; init; } = "";
+        public Action<string>? OnSearchChanged { get; init; }
+        public FileBrowserViewMode ViewMode { get; init; } = FileBrowserViewMode.List;
+        public Action<FileBrowserViewMode>? OnViewModeChanged { get; init; }
+        public Action<string>? OnNavigate { get; init; }
+        public FileBrowserTheme? Theme { get; init; }
+    }
+
+    public sealed class FileBrowserToolbar : Component<FileBrowserToolbarProps>
+    {
+        private FileBrowserToolbarProps PropsValue => Props ?? new FileBrowserToolbarProps();
+        public override Node Render()
+        {
+            var PropsValue = Props as FileBrowserToolbarProps ?? new FileBrowserToolbarProps();
+            var theme = PropsValue.Theme;
+            var style = theme != null ? theme.ToCssVariables() : "";
+            var attrs = string.IsNullOrEmpty(style) ? null : new Dictionary<string, string> { ["style"] = style };
+
+            var segments = new List<string>();
+            var cumulative = new List<string>();
+            var root = System.IO.Path.GetPathRoot(PropsValue.CurrentPath) ?? "";
+            // build breadcrumb segments
+            var parts = PropsValue.CurrentPath.Split(new[] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+            // handle root/drive
+            string current = "";
+            if (!string.IsNullOrEmpty(root))
+            {
+                current = root;
+                segments.Add(root.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar));
+                cumulative.Add(root);
+            }
+            foreach (var part in parts)
+            {
+                if (!string.IsNullOrEmpty(root) && part == root.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar)) continue;
+                current = System.IO.Path.Combine(current, part);
+                segments.Add(part);
+                cumulative.Add(current);
+            }
+
+            return (
+                <div className="file-browser-toolbar" attributes={attrs}>
+                    <div className="toolbar-nav">
+                        <button className="toolbar-btn icon" title="Back" disabled={!PropsValue.CanGoBack} onClick={() => PropsValue.OnBack?.Invoke()}>←</button>
+                        <button className="toolbar-btn icon" title="Forward" disabled={!PropsValue.CanGoForward} onClick={() => PropsValue.OnForward?.Invoke()}>→</button>
+                        <button className="toolbar-btn icon" title="Up" disabled={!PropsValue.CanGoUp} onClick={() => PropsValue.OnUp?.Invoke()}>↑</button>
+                        <button className="toolbar-btn icon" title="Refresh" onClick={() => PropsValue.OnRefresh?.Invoke()}>↻</button>
+                    </div>
+                    <div className="toolbar-breadcrumbs">
+                        {Each(cumulative.Select((p, i) => new { Path = p, Label = segments[i], Index = i, IsLast = i == cumulative.Count - 1 }).ToList(), seg =>
+                            <span className="breadcrumb-group">
+                                {seg.Index > 0 ? <span className="breadcrumb-sep">/</span> : null}
+                                <button className={"breadcrumb" + (seg.IsLast ? " current" : "")} onClick={() => PropsValue.OnNavigate?.Invoke(seg.Path)}>{seg.Label}</button>
+                            </span>)}
+                    </div>
+                    <div className="toolbar-search">
+                        <input type="search" placeholder="Search" value={PropsValue.SearchQuery} onInput={(v) => PropsValue.OnSearchChanged?.Invoke(v)} />
+                    </div>
+                    <div className="toolbar-view">
+                        <button className={"toolbar-btn" + (PropsValue.ViewMode == FileBrowserViewMode.List ? " active" : "")} onClick={() => PropsValue.OnViewModeChanged?.Invoke(FileBrowserViewMode.List)}>List</button>
+                        <button className={"toolbar-btn" + (PropsValue.ViewMode == FileBrowserViewMode.Grid ? " active" : "")} onClick={() => PropsValue.OnViewModeChanged?.Invoke(FileBrowserViewMode.Grid)}>Grid</button>
+                    </div>
+                </div>
+            );
+        }
+    }
+}

@@ -1,0 +1,74 @@
+using Donkeh.UILab;
+using static Donkeh.UILab._;
+using static Donkeh.UILab.HtmlHelper;
+
+[assembly: Donkeh.UILab.Stylesheet("src/Components/FileBrowserContextMenu/FileBrowserContextMenu.css")]
+
+namespace OpenCreativeSuite.Files
+{
+    public sealed class FileBrowserContextMenuProps
+    {
+        public bool Open { get; init; }
+        public bool Inline { get; init; }
+        public double X { get; init; }
+        public double Y { get; init; }
+        public IReadOnlyList<FileBrowserContextItem> Items { get; init; } = Array.Empty<FileBrowserContextItem>();
+        public FileBrowserContextRequest? Request { get; init; }
+        public Action? OnClose { get; init; }
+        public FileBrowserTheme? Theme { get; init; }
+    }
+
+    public sealed class FileBrowserContextMenu : Component<FileBrowserContextMenuProps>
+    {
+        private FileBrowserContextMenuProps PropsValue => Props ?? new FileBrowserContextMenuProps();
+        public override Node Render()
+        {
+            var PropsValue = Props as FileBrowserContextMenuProps ?? new FileBrowserContextMenuProps();
+            if (!PropsValue.Open) return (F(Array.Empty<Node>()));
+
+            var theme = PropsValue.Theme;
+            var style = theme != null ? theme.ToCssVariables() : "";
+            var attrs = string.IsNullOrEmpty(style) ? null : new Dictionary<string, string> { ["style"] = style };
+
+            var menuStyle = $"left:{PropsValue.X}px;top:{PropsValue.Y}px;";
+            var menuAttrs = PropsValue.Inline
+                ? attrs
+                : new Dictionary<string, string> { ["style"] = (string.IsNullOrEmpty(style) ? "" : style + ";") + menuStyle };
+            var overlayClass = "file-browser-context-overlay" + (PropsValue.Inline ? " inline" : "");
+            var menuClass = "file-browser-context-menu" + (PropsValue.Inline ? " inline" : "");
+
+            return (
+                <div className={overlayClass} onClick={() => PropsValue.OnClose?.Invoke()}>
+                    <div className={menuClass} attributes={menuAttrs}>
+                        {Each(PropsValue.Items, item =>
+                            item.IsSeparator
+                                ? <div className="context-separator" />
+                                : <div className="context-item-wrapper">
+                                    <button className={"context-item" + (item.Enabled(PropsValue.Request!) ? "" : " disabled")}
+                                            disabled={!item.Enabled(PropsValue.Request!)}
+                                            onClick={() => { item.OnClick?.Invoke(PropsValue.Request!); PropsValue.OnClose?.Invoke(); }}>
+                                        <span className="context-icon">{item.Icon ?? ""}</span>
+                                        <span className="context-label">{item.Label}</span>
+                                        {string.IsNullOrEmpty(item.Shortcut) ? null : <span className="context-shortcut">{item.Shortcut}</span>}
+                                        {item.Submenu != null && item.Submenu.Count > 0 ? <span className="context-arrow">▶</span> : null}
+                                    </button>
+                                    {item.Submenu != null && item.Submenu.Count > 0
+                                        ? <div className="context-submenu">
+                                            {Each(item.Submenu, sub =>
+                                                sub.IsSeparator
+                                                    ? <div className="context-separator" />
+                                                    : <button className={"context-item" + (sub.Enabled(PropsValue.Request!) ? "" : " disabled")}
+                                                              disabled={!sub.Enabled(PropsValue.Request!)}
+                                                              onClick={() => { sub.OnClick?.Invoke(PropsValue.Request!); PropsValue.OnClose?.Invoke(); }}>
+                                                        <span className="context-icon">{sub.Icon ?? ""}</span>
+                                                        <span className="context-label">{sub.Label}</span>
+                                                    </button>)}
+                                        </div>
+                                        : null}
+                                </div>)}
+                    </div>
+                </div>
+            );
+        }
+    }
+}
