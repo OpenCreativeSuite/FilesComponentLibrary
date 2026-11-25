@@ -6,6 +6,16 @@ on:
       - 'v*'
       - 'V*'
       - '[0-9]*'
+  workflow_dispatch:
+    inputs:
+      nuget_user:
+        description: 'NuGet.org user name (optional; falls back to NUGET_USER secret)'
+        required: false
+        type: string
+      tag:
+        description: 'Version tag, for example v1.2.3'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -48,7 +58,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          tag="${GITHUB_REF_NAME}"
+          tag="${{ inputs.tag || github.ref_name }}"
           version="${tag#[vV]}"
 
           if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
@@ -71,13 +81,29 @@ jobs:
       - name: Show generated packages
         run: ls -la artifacts
 
+      - name: Resolve NuGet user
+        id: nuget-user
+        shell: bash
+        env:
+          INPUT_USER: ${{ inputs.nuget_user }}
+          SECRET_USER: ${{ secrets.NUGET_USER }}
+          SECRET_USERNAME: ${{ secrets.NUGET_USERNAME }}
+          VAR_USER: ${{ vars.NUGET_USER }}
+        run: |
+          user="${INPUT_USER:-${SECRET_USER:-${SECRET_USERNAME:-${VAR_USER}}}}"
+          if [ -z "$user" ]; then
+            echo "::error::No NuGet user configured. Set the NUGET_USER secret in the 'production' environment (or pass nuget_user when running manually)."
+            exit 1
+          fi
+          echo "user=${user}" >> "$GITHUB_OUTPUT"
+
       # Exchanges the GitHub OIDC token for a NuGet API key that is valid for 1 hour.
       # Keep this step immediately before publishing so the key cannot expire.
       - name: NuGet login (OIDC -> temp API key)
         id: login
         uses: NuGet/login@v1
         with:
-          user: ${{ secrets.NUGET_USER }}
+          user: ${{ steps.nuget-user.outputs.user }}
 
       - name: Push package to NuGet.org
         env:
