@@ -3,7 +3,7 @@ using Donkeh.UILab;
 using static Donkeh.UILab.HtmlHelper;
 using static Donkeh.UILab._;
 using System.Runtime.CompilerServices;
-using OpenCreativeSuite.Files;
+using OpenCreativeSuite.Components.Files;
 
 [assembly: Donkeh.UILab.Stylesheet("Styles/gallery.css")]
 

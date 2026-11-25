@@ -1,5 +1,5 @@
 
-namespace OpenCreativeSuite.Files
+namespace OpenCreativeSuite.Components.Files
 {
     public interface IFileSystemProvider
     {

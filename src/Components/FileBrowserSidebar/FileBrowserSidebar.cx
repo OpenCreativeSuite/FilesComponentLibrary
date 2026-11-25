@@ -4,7 +4,7 @@ using static Donkeh.UILab.HtmlHelper;
 
 [assembly: Donkeh.UILab.Stylesheet("src/Components/FileBrowserSidebar/FileBrowserSidebar.css")]
 
-namespace OpenCreativeSuite.Files
+namespace OpenCreativeSuite.Components.Files
 {
     public sealed class FileBrowserSidebarProps
     {

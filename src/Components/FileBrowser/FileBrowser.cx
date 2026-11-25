@@ -5,7 +5,7 @@ using System.IO;
 
 [assembly: Donkeh.UILab.Stylesheet("src/Components/FileBrowser/FileBrowser.css")]
 
-namespace OpenCreativeSuite.Files
+namespace OpenCreativeSuite.Components.Files
 {
     public sealed class FileBrowserProps : Props
     {

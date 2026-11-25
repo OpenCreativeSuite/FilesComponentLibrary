@@ -4,7 +4,7 @@ using static Donkeh.UILab.HtmlHelper;
 
 [assembly: Donkeh.UILab.Stylesheet("src/Components/FileBrowserContextMenu/FileBrowserContextMenu.css")]
 
-namespace OpenCreativeSuite.Files
+namespace OpenCreativeSuite.Components.Files
 {
     public sealed class FileBrowserContextMenuProps
     {

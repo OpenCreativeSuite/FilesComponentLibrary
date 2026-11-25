@@ -4,7 +4,7 @@ using static Donkeh.UILab.HtmlHelper;
 
 [assembly: Donkeh.UILab.Stylesheet("src/Components/FileBrowserDialogHost/FileBrowserDialogHost.css")]
 
-namespace OpenCreativeSuite.Files
+namespace OpenCreativeSuite.Components.Files
 {
     /// <summary>
     /// Mount one of these near the root of the app. <see cref="FileSelector"/>

@@ -1,5 +1,5 @@
 
-namespace OpenCreativeSuite.Files
+namespace OpenCreativeSuite.Components.Files
 {
     /// <summary>Describes a file/directory dialog opened through <see cref="FileBrowserDialogService"/>.</summary>
     public sealed class FileBrowserDialogRequest

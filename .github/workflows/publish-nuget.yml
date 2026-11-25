@@ -1,0 +1,111 @@
+name: Publish NuGet package
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'V*'
+      - '[0-9]*'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: nuget-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  PROJECT: src/Files.csproj
+
+jobs:
+  publish:
+    name: Pack and publish OpenCreativeSuite.Components.Files
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install CSX tool
+        run: dotnet tool install --global CSX.CliTool --version 1.0.1
+
+      - name: Transform CSX sources
+        run: csx build --configuration Release
+
+      - name: Determine package version
+        id: version
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#[vV]}"
+
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Tag '${tag}' is not a valid NuGet version. Use a tag like v1.2.3 or v1.2.3-beta.1."
+            exit 1
+          fi
+
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Publishing version ${version}"
+
+      - name: Restore
+        run: dotnet restore "$PROJECT"
+
+      - name: Build
+        run: dotnet build "$PROJECT" -c Release --no-restore -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Pack
+        run: dotnet pack "$PROJECT" -c Release --no-build --no-restore -p:Version=${{ steps.version.outputs.version }} -o artifacts
+
+      - name: Show generated packages
+        run: ls -la artifacts
+
+      # Exchanges the GitHub OIDC token for a NuGet API key that is valid for 1 hour.
+      # Keep this step immediately before publishing so the key cannot expire.
+      - name: NuGet login (OIDC -> temp API key)
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Push package to NuGet.org
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        shell: bash
+        run: |
+          shopt -s nullglob
+          packages=(artifacts/*.nupkg)
+
+          if [ ${#packages[@]} -eq 0 ]; then
+            echo "::error::No .nupkg files were produced in artifacts/."
+            exit 1
+          fi
+
+          for package in "${packages[@]}"; do
+            echo "Pushing ${package}"
+            dotnet nuget push "${package}" \
+              --source https://api.nuget.org/v3/index.json \
+              --api-key "${NUGET_API_KEY}" \
+              --skip-duplicate
+          done
+
+      - name: Upload package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-package-${{ steps.version.outputs.version }}
+          path: |
+            artifacts/*.nupkg
+            artifacts/*.snupkg
+          if-no-files-found: warn

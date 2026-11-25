@@ -1,4 +1,4 @@
-namespace OpenCreativeSuite.Files
+namespace OpenCreativeSuite.Components.Files
 {
     public sealed class FileBrowserOptions
     {

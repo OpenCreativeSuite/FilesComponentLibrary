@@ -10,7 +10,7 @@ Every example below is shown twice:
 ## Install
 
 ```powershell
-dotnet add package Files
+dotnet add package OpenCreativeSuite.Components.Files
 ```
 
 The package targets `net10.0`. Component stylesheets are embedded in the package; make sure the `Files` assembly is loaded so the framework can discover its `[Stylesheet]` attributes. If your app never renders a component directly (for example, you only open dialogs through the service), force the assembly to load:
@@ -23,7 +23,7 @@ internal static class LibraryLoader
     [ModuleInitializer]
     internal static void Initialize()
     {
-        GC.KeepAlive(typeof(OpenCreativeSuite.Files.FileBrowserDialogHost));
+        GC.KeepAlive(typeof(OpenCreativeSuite.Components.Files.FileBrowserDialogHost));
     }
 }
 ```
@@ -35,7 +35,7 @@ internal static class LibraryLoader
 Markup (`.cx`):
 
 ```csharp
-using OpenCreativeSuite.Files;
+using OpenCreativeSuite.Components.Files;
 
 public override Node Render()
 {
@@ -52,7 +52,7 @@ Plain C#:
 
 ```csharp
 using Donkeh.UILab;
-using OpenCreativeSuite.Files;
+using OpenCreativeSuite.Components.Files;
 using static Donkeh.UILab.HtmlHelper;
 using static Donkeh.UILab._;
 
@@ -91,7 +91,7 @@ The complete browser: breadcrumb toolbar, sidebar, sortable list/grid, search, h
 Markup (`.cx`):
 
 ```csharp
-using OpenCreativeSuite.Files;
+using OpenCreativeSuite.Components.Files;
 
 public override Node Render()
 {
@@ -112,7 +112,7 @@ Plain C#:
 
 ```csharp
 using Donkeh.UILab;
-using OpenCreativeSuite.Files;
+using OpenCreativeSuite.Components.Files;
 using static Donkeh.UILab._;
 
 public override Node Render()
@@ -218,7 +218,7 @@ Open a modal directly from code with `FileBrowserDialogService.Open`. The host l
 C# (service calls are plain C# in both syntaxes):
 
 ```csharp
-using OpenCreativeSuite.Files;
+using OpenCreativeSuite.Components.Files;
 
 FileBrowserDialogService.Open(new FileBrowserDialogRequest
 {
@@ -466,7 +466,7 @@ _.C<FileBrowserContextMenu, FileBrowserContextMenuProps>(new FileBrowserContextM
 `FileBrowser` uses `LocalFileSystemProvider` by default. Implement `IFileSystemProvider` to browse something else (virtual folders, cloud storage, an in-memory test file system) and pass it via `FileSystemProvider`.
 
 ```csharp
-using OpenCreativeSuite.Files;
+using OpenCreativeSuite.Components.Files;
 
 public sealed class MemoryFileSystemProvider : IFileSystemProvider
 {

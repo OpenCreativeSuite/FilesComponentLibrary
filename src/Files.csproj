@@ -3,12 +3,13 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <DonkehDesktop>true</DonkehDesktop>
-    <RootNamespace>OpenCreativeSuite.Files</RootNamespace>
+    <RootNamespace>OpenCreativeSuite.Components.Files</RootNamespace>
+    <AssemblyName>OpenCreativeSuite.Components.Files</AssemblyName>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
-    <PackageId>Files</PackageId>
-    <Description>Files components for Donkeh.</Description>
+    <PackageId>OpenCreativeSuite.Components.Files</PackageId>
+    <Description>File browser components for Donkeh apps.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <DonkehVersion Condition="'$(DonkehVersion)' == ''">1.0.52</DonkehVersion>
   </PropertyGroup>
