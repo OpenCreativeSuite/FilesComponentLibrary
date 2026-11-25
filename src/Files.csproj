@@ -10,7 +10,7 @@
     <PackageId>Files</PackageId>
     <Description>Files components for Donkeh.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <DonkehVersion Condition="'$(DonkehVersion)' == ''">1.0.51</DonkehVersion>
+    <DonkehVersion Condition="'$(DonkehVersion)' == ''">1.0.52</DonkehVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,6 +22,8 @@
     <None Include="../README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <ItemGroup>
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Donkeh.UILab" Version="$(DonkehVersion)" />
   </ItemGroup>

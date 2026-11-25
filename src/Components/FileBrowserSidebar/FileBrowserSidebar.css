@@ -78,6 +78,8 @@
 .sidebar-text {
     display: block;
     min-width: 0;
+    /* Widen the padding-box clip so glyph side bearings are not shaved. */
+    padding: 0 3px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

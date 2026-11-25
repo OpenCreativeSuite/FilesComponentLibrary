@@ -8,7 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <DefaultItemExcludes>$(DefaultItemExcludes);builds/**</DefaultItemExcludes>
-    <DonkehVersion Condition="'$(DonkehVersion)' == ''">1.0.51</DonkehVersion>
+    <DonkehVersion Condition="'$(DonkehVersion)' == ''">1.0.52</DonkehVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +16,8 @@
     <EmbeddedResource Include="Styles/gallery.css" />
   </ItemGroup>
 
+  <ItemGroup>
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Donkeh.Windowing" Version="$(DonkehVersion)" />
   </ItemGroup>

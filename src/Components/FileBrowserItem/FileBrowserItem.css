@@ -177,6 +177,10 @@
 .item-name {
     display: block;
     min-width: 0;
+    /* Side bearings and rasterised glyph edges extend slightly past the
+       measured advance. Padding widens the padding-box clip so the first
+       and last glyphs keep their outer pixels. */
+    padding: 0 3px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
